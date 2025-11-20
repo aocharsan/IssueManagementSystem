@@ -4,15 +4,22 @@ import com.growvenus.ims.dto.IssueRequest;
 import com.growvenus.ims.dto.IssueResponse;
 import com.growvenus.ims.entity.Issue;
 import com.growvenus.ims.enums.Priority;
+import com.growvenus.ims.enums.Roles;
 import com.growvenus.ims.enums.Status;
 import com.growvenus.ims.exception.IssueAlreadyExistsException;
 import com.growvenus.ims.exception.IssueNotFoundException;
 import com.growvenus.ims.mapper.IssueMapper;
 import com.growvenus.ims.repository.IssueRepository;
+import com.growvenus.ims.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,14 +28,22 @@ import java.util.Optional;
 public class IssueServiceImpl {
 
    private final IssueRepository issueRepository;
+   private final UserRepository userRepository;
+
+
 
    @Autowired
-    public IssueServiceImpl(IssueRepository issueRepository) {
+    public IssueServiceImpl(IssueRepository issueRepository, UserRepository userRepository) {
         this.issueRepository = issueRepository;
-    }
+        this.userRepository = userRepository;
+   }
 
 
     public void createIssue(IssueRequest issueRequest){
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String authUser = auth.getName();
+        Collection<? extends GrantedAuthority> authorities = auth.getAuthorities();
+        GrantedAuthority[] roleAssign = authorities.toArray(new GrantedAuthority[0]);
 
         Issue issue = IssueMapper.toIssue(issueRequest);
         Optional<Issue> byTitle = issueRepository.findByTitleIgnoreCase(issueRequest.getTitle());
@@ -36,6 +51,7 @@ public class IssueServiceImpl {
             throw new IssueAlreadyExistsException("Issue for provided title already created by :"+byTitle.get().getAssignee());
         }
         else {
+            issue.setAssignee(authUser);
             issue.setCreatedAt(LocalDateTime.now());
             issueRepository.save(issue);
             log.info("new issue created successfully......");
@@ -55,6 +71,8 @@ public class IssueServiceImpl {
 
     public List<IssueResponse> getAllIssues(){
         List<Issue> issueList = issueRepository.findAll();
+        // use pagination for large tables
+        //  issueRepository.findAll(PageRequest.of(0,50));
         if(issueList.isEmpty()){
             throw new RuntimeException("Currently there is no issues inline.........");
         }
@@ -67,8 +85,17 @@ public class IssueServiceImpl {
 
     public IssueResponse updateIssueOrStatus(int id, IssueRequest dto) {
 
+        String userName  = SecurityContextHolder.getContext()
+                                                .getAuthentication()
+                                                .getName();
+
         Issue issue = issueRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Issue not found"));
+
+
+        if (!issue.getAssignee().equals(userName)) {
+            throw new AccessDeniedException("You can update only your own issues");
+        }
 
         if (dto.getTitle() != null)
             issue.setTitle(dto.getTitle());

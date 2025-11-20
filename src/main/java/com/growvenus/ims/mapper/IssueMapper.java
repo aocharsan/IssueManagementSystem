@@ -11,7 +11,6 @@ public class IssueMapper {
         return Issue.builder()
                 .title(issueRequest.getTitle())
                 .description(issueRequest.getDescription())
-                .assignee("Sanket Deshmukh")
                 .build();
     }
 

@@ -9,12 +9,13 @@ import com.growvenus.ims.service.IssueServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-    @RequestMapping("growvenus/api")
+@RequestMapping("growvenus/api")
 public class IssueController {
 
     private final IssueServiceImpl issueService;
@@ -31,7 +32,7 @@ public class IssueController {
     }
 
 
-    @GetMapping("/get-Issue")
+    @GetMapping("/get-issue")
     public ResponseEntity<IssueResponse> fetchIssue(@RequestParam String title){
 
         IssueResponse issueResponse = issueService.fetchIssueByTitle(title);
@@ -39,7 +40,7 @@ public class IssueController {
 
     }
 
-    @GetMapping("/get-all-Issue")
+    @GetMapping("/get-all-issue")
     public ResponseEntity<List<IssueResponse>> fetchAllIssue(){
 
         List<IssueResponse> allIssues = issueService.getAllIssues();
@@ -54,6 +55,7 @@ public class IssueController {
         return ResponseEntity.ok(issueService.updateIssueOrStatus(id, request));
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @DeleteMapping("delete-issue/{id}")
     public ResponseEntity<Void> deleteIssue(@PathVariable int id) {
         issueService.deleteIssue(id);
