@@ -4,7 +4,6 @@ import com.growvenus.ims.dto.IssueRequest;
 import com.growvenus.ims.dto.IssueResponse;
 import com.growvenus.ims.entity.Issue;
 import com.growvenus.ims.enums.Priority;
-import com.growvenus.ims.enums.Roles;
 import com.growvenus.ims.enums.Status;
 import com.growvenus.ims.exception.IssueAlreadyExistsException;
 import com.growvenus.ims.exception.IssueNotFoundException;
@@ -18,6 +17,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
@@ -28,22 +28,19 @@ import java.util.Optional;
 public class IssueServiceImpl {
 
    private final IssueRepository issueRepository;
-   private final UserRepository userRepository;
+
 
 
 
    @Autowired
-    public IssueServiceImpl(IssueRepository issueRepository, UserRepository userRepository) {
+    public IssueServiceImpl(IssueRepository issueRepository) {
         this.issueRepository = issueRepository;
-        this.userRepository = userRepository;
    }
 
 
     public void createIssue(IssueRequest issueRequest){
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String authUser = auth.getName();
-        Collection<? extends GrantedAuthority> authorities = auth.getAuthorities();
-        GrantedAuthority[] roleAssign = authorities.toArray(new GrantedAuthority[0]);
 
         Issue issue = IssueMapper.toIssue(issueRequest);
         Optional<Issue> byTitle = issueRepository.findByTitleIgnoreCase(issueRequest.getTitle());
